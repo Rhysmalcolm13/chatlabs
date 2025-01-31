@@ -1251,6 +1251,7 @@ export interface Database {
           azure_openai_endpoint: string | null
           bio: string
           created_at: string
+          deepseek_api_key: string | null
           display_name: string
           experimental_code_editor: boolean | null
           files_command: string | null
@@ -1289,6 +1290,7 @@ export interface Database {
           azure_openai_endpoint?: string | null
           bio: string
           created_at?: string
+          deepseek_api_key?: string | null
           display_name: string
           experimental_code_editor?: boolean | null
           files_command?: string | null
@@ -1327,6 +1329,7 @@ export interface Database {
           azure_openai_endpoint?: string | null
           bio?: string
           created_at?: string
+          deepseek_api_key?: string | null
           display_name?: string
           experimental_code_editor?: boolean | null
           files_command?: string | null

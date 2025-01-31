@@ -102,3 +102,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.deepseek-reasoning {
+  color: #707070;
+}

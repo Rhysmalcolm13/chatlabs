@@ -30,6 +30,7 @@ import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { cn } from "@/lib/utils"
 import ReactMarkdown from "react-markdown"
 import { ModelDetails } from "@/components/models/model-details"
+import { DEEPSEEK_LLM_LIST } from "@/lib/models/llm/deepseek-llm-list"
 
 interface ModelSelectProps {
   selectedModelId: string
@@ -93,6 +94,7 @@ export const ModelSelectChat: FC<ModelSelectProps> = ({
       if (tab === "hosted") return model.provider !== "ollama"
       if (tab === "local") return model.provider === "ollama"
       if (tab === "openrouter") return model.provider === "openrouter"
+      if (tab === "deepseek") return model.provider === "deepseek"
     })
     .filter(
       model =>
@@ -173,6 +175,7 @@ export const ModelSelectChat: FC<ModelSelectProps> = ({
               <TabsList defaultValue="hosted" className="grid grid-cols-2">
                 <TabsTrigger value="hosted">Hosted</TabsTrigger>
                 <TabsTrigger value="local">Local</TabsTrigger>
+                <TabsTrigger value="deepseek">DeepSeek</TabsTrigger>
               </TabsList>
             </Tabs>
           )}
