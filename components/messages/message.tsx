@@ -31,6 +31,10 @@ import { AssistantIcon } from "@/components/assistants/assistant-icon"
 import { toast } from "sonner"
 import { LoadingMessage } from "@/components/messages/message-loading"
 import { CodeBlock as ChatMessageCodeBlock } from "@/types/chat-message"
+import MessageMarkdownMemoized from "./message-markdown-memoized"
+import { MessageReplies } from "./message-replies"
+import { MessageSharingDialog } from "./message-sharing-dialog"
+import { useToast } from "@/components/ui/use-toast"
 
 const ICON_SIZE = 32
 
@@ -363,257 +367,40 @@ export const Message: FC<MessageProps> = ({
     assistant = selectedAssistant
   }
 
+  const isReasoner = message.model.includes("deepseek-reasoner")
+
   return (
     <div
       className={cn(
-        "group flex w-full justify-center",
-        // message.role === "user" ? "" : "bg-secondary",
-        "role-" + message.role,
-        isLast ? "is-last" : ""
+        "group relative flex w-full flex-col items-start space-y-1.5",
+        isReasoner && "bg-muted/20" // Example styling for reasoner steps
       )}
-      onKeyDown={handleKeyDown}
     >
-      <div className="relative flex w-full flex-col p-4">
-        <div className="space-y-3">
-          {message.role === "system" ? (
-            <div className="flex items-center space-x-4">
-              <IconTerminal2
-                className="border-primary bg-primary text-secondary rounded border-[1px] p-1"
-                size={ICON_SIZE}
-              />
+      <MessageReplies message={message} />
 
-              <div className="text-lg font-semibold">Prompt</div>
-            </div>
-          ) : (
-            <div className="relative flex items-center space-x-3">
-              {message.role === "assistant" ? (
-                assistant ? (
-                  <AssistantIcon
-                    size={ICON_SIZE - 4}
-                    className={`h-[${ICON_SIZE}px] w-[${ICON_SIZE}px]`}
-                    assistant={assistant}
-                  />
-                ) : (
-                  <WithTooltip
-                    display={<div>{MODEL_DATA?.modelName}</div>}
-                    trigger={
-                      <ModelIcon
-                        provider={MODEL_DATA?.provider || "custom"}
-                        modelId={MODEL_DATA?.modelId}
-                        height={ICON_SIZE}
-                        width={ICON_SIZE}
-                      />
-                    }
-                  />
-                )
-              ) : profile?.image_url ? (
-                <Image
-                  className={`size-[32px] rounded`}
-                  src={profile?.image_url}
-                  height={32}
-                  width={32}
-                  alt="user image"
-                />
-              ) : (
-                <IconMoodSmile
-                  className="bg-primary text-secondary border-primary rounded border-[1px] p-1"
-                  size={ICON_SIZE}
-                />
-              )}
-
-              <div className="font-semibold">
-                {message.role === "assistant"
-                  ? message.assistant_id
-                    ? assistants.find(
-                        assistant => assistant.id === message.assistant_id
-                      )?.name
-                    : selectedAssistant
-                      ? selectedAssistant?.name
-                      : MODEL_DATA?.modelName
-                  : profile?.display_name ?? profile?.username}
-              </div>
-              {showActions && (
-                <div className={"absolute right-0"}>
-                  <MessageActions
-                    isGenerating={isGenerating}
-                    onCopy={handleCopy}
-                    onEdit={handleStartEdit}
-                    isAssistant={message.role === "assistant"}
-                    isLast={isLast}
-                    isEditing={isEditing}
-                    onRegenerate={handleRegenerate}
-                    isVoiceToTextPlaying={isVoiceToTextPlaying}
-                    onVoiceToText={() => {
-                      // TODO: figure out await and Promise
-                      handleSpeakMessage()
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          <Annotations annotation={message.annotation as Annotation} />
-          {!firstTokenReceived &&
-          isGenerating &&
-          isLast &&
-          message.role === "assistant" ? (
-            <LoadingMessage isGenerating={isGenerating} />
-          ) : isEditing ? (
-            <TextareaAutosize
-              textareaRef={editInputRef}
-              className="text-md"
-              value={editedMessage}
-              onValueChange={setEditedMessage}
-              maxRows={20}
-            />
-          ) : (
-            <MessageMarkdown
-              isGenerating={isGenerating && isLast}
-              codeBlocks={codeBlocks}
-              content={message.content}
-              onSelectCodeBlock={onSelectCodeBlock}
-              experimental_code_editor={!!profile?.experimental_code_editor}
-            />
-          )}
-        </div>
-
-        {fileItems.length > 0 && (
-          <div className="border-primary mt-6 border-t pt-4 font-semibold">
-            {!viewSources ? (
-              <div
-                className="flex cursor-pointer items-center text-lg hover:opacity-50"
-                onClick={() => setViewSources(true)}
-              >
-                {fileItems.length}
-                {fileItems.length > 1 ? " Sources " : " Source "}
-                from {Object.keys(fileSummary).length}{" "}
-                {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                <IconCaretRightFilled className="ml-1" />
-              </div>
-            ) : (
-              <>
-                <div
-                  className="flex cursor-pointer items-center text-lg hover:opacity-50"
-                  onClick={() => setViewSources(false)}
-                >
-                  {fileItems.length}
-                  {fileItems.length > 1 ? " Sources " : " Source "}
-                  from {Object.keys(fileSummary).length}{" "}
-                  {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                  <IconCaretDownFilled className="ml-1" />
-                </div>
-
-                <div className="mt-3 space-y-4">
-                  {Object.values(fileSummary).map((file, index) => (
-                    <div key={index}>
-                      <div className="flex items-center space-x-2">
-                        <div>
-                          <FileIcon type={file.type} />
-                        </div>
-
-                        <div className="truncate">{file.name}</div>
-                      </div>
-
-                      {fileItems
-                        .filter(fileItem => {
-                          const parentFile = files.find(
-                            parentFile => parentFile.id === fileItem.file_id
-                          )
-                          return parentFile?.id === file.id
-                        })
-                        .map((fileItem, index) => (
-                          <div
-                            key={index}
-                            className="ml-8 mt-1.5 flex cursor-pointer items-center space-x-2 hover:opacity-50"
-                            onClick={() => {
-                              setSelectedFileItem(fileItem)
-                              setShowFileItemPreview(true)
-                            }}
-                          >
-                            <div className="text-sm font-normal">
-                              <span className="mr-1 text-lg font-semibold">
-                                -
-                              </span>{" "}
-                              {fileItem.content.substring(0, 200)}...
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {message.image_paths.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {message.image_paths.map((path, index) => {
-              const item = chatImages.find(image => image.path === path)
-
-              return (
-                <Image
-                  key={index}
-                  className="cursor-pointer rounded hover:opacity-50"
-                  src={path.startsWith("data") ? path : item?.base64}
-                  alt="message image"
-                  width={300}
-                  height={300}
-                  onClick={() => {
-                    setSelectedImage({
-                      messageId: message.id,
-                      path,
-                      base64: path.startsWith("data")
-                        ? path
-                        : item?.base64 || "",
-                      url: path.startsWith("data") ? "" : item?.url || "",
-                      file: null
-                    })
-
-                    setShowImagePreview(true)
-                  }}
-                  loading="lazy"
-                />
-              )
-            })}
-          </div>
-        )}
-        {isEditing && (
-          <div className="mt-4 flex justify-center space-x-2">
-            <Button size="sm" onClick={handleSendEdit}>
-              Save & Send
-            </Button>
-
-            <Button size="sm" variant="outline" onClick={onCancelEdit}>
-              Cancel
-            </Button>
-          </div>
+      <div className="relative flex w-full flex-col items-start">
+        {isGenerating && isLast ? (
+          <LoadingMessage />
+        ) : (
+          <MessageMarkdownMemoized
+            content={message.content}
+            codeBlocks={codeBlocks}
+            onSelectCodeBlock={onSelectCodeBlock}
+            fileItems={fileItems}
+          />
         )}
       </div>
-
-      {showImagePreview && selectedImage && (
-        <FilePreview
-          type="image"
-          item={selectedImage}
-          isOpen={showImagePreview}
-          onOpenChange={(isOpen: boolean) => {
-            setShowImagePreview(isOpen)
-            setSelectedImage(null)
-          }}
+      {showActions && (
+        <MessageActions
+          message={message}
+          isEditing={isEditing}
+          onStartEdit={onStartEdit}
+          onCancelEdit={onCancelEdit}
+          onSubmitEdit={onSubmitEdit}
+          onRegenerate={onRegenerate}
         />
       )}
-
-      {showFileItemPreview && selectedFileItem && (
-        <FilePreview
-          type="file_item"
-          item={selectedFileItem}
-          isOpen={showFileItemPreview}
-          onOpenChange={(isOpen: boolean) => {
-            setShowFileItemPreview(isOpen)
-            setSelectedFileItem(null)
-          }}
-        />
-      )}
+      <MessageSharingDialog message={message} />
     </div>
   )
 }
